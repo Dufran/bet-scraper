@@ -1,8 +1,7 @@
+import logging
 import time
 
 import requests
-from decouple import config
-from fake_useragent import UserAgent
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -15,22 +14,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class Bet365Crawler:
     def __init__(self):
-        # Get api of fingerprint
-        # resp = requests.get(
-        #     config("ADS_POWER_API"),
-        #     {"user_id": config("ADS_POWER_USER_ID")},
-        # )
-        # if resp.status_code != 200:
-        #     raise Exception("Ads power api not working")
-        # # print(resp.json())
-        # chrome_options = Options()
-        # chrome_options.add_experimental_option(
-        #     "debuggerAddress", resp.json()["data"]["ws"]["selenium"]
-        # )
-        # self.driver = webdriver.Chrome(
-        #     service=Service(executable_path=resp.json()["data"]["webdriver"]),
-        #     options=chrome_options,
-        # )\driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
         options = Options()
         # ua = UserAgent()
@@ -50,16 +33,15 @@ class Bet365Crawler:
   """
             },
         )
-        self.start_time = time.time()
+        self.start_time = time.perf_counter()
         # driver = webdriver.Chrome(chrome_options=options, executable_path=r'C:\WebDrivers\ChromeDriver\chromedriver_win32\chromedriver.exe')
         # driver.get("https://www.google.co.in")
         # driver.quit()
 
     def main(self):
         self.driver.get("https://www.bet365.com/#/HO/")
-        self.wait = WebDriverWait(self.driver, 30)
+        self.wait = WebDriverWait(self.driver, 50)
         # time.sleep(20)
-
         self.wait.until(
             EC.visibility_of_element_located(
                 (By.CSS_SELECTOR, "div.ccm-CookieConsentPopup_Accept")
@@ -69,7 +51,6 @@ class Bet365Crawler:
             By.CSS_SELECTOR, value="div.ccm-CookieConsentPopup_Accept"
         )
         self.driver.execute_script("arguments[0].click();", cookie)
-
         sport_list = self.driver.find_elements(
             by=By.CSS_SELECTOR,
             value="div.wn-ClassificationIcon",
@@ -78,8 +59,7 @@ class Bet365Crawler:
             sport_text = sport.find_element(
                 By.XPATH, value="./following-sibling::span"
             ).text
-            print(f"Entered {sport_text} in {(time.time() - self.start_time)} ")
-
+            logging.warning(f"Entered {sport_text} in {(time.perf_counter() - self.start_time)} ")
             self.driver.execute_script("arguments[0].click();", sport)
             match sport_text:
                 case "Футбол":
@@ -88,14 +68,14 @@ class Bet365Crawler:
                             (By.CSS_SELECTOR, "div.sm-SplashModule")
                         )
                     )
-                    next_categories = self.driver.find_elements(
+                    categories = self.driver.find_elements(
                         By.CSS_SELECTOR,
                         "div.sm-UpComingFixturesMultipleParticipants_Region",
                     )
-                    for category in next_categories:
+                    for category in categories:
                         self.driver.execute_script("arguments[0].click();", category)
-                        print(
-                            f"Entered {sport_text}-group in {(time.time() - self.start_time)} "
+                        logging.warning(
+                            f"Entered {sport_text}-group in {(time.perf_counter() - self.start_time)} "
                         )
                         self.wait.until(
                             EC.visibility_of_element_located(
@@ -117,27 +97,28 @@ class Bet365Crawler:
                             By.CSS_SELECTOR,
                             "div.rcl-ParticipantFixtureDetails_TeamAndScoresContainer",
                         )
+                        
+                        # self.driver.refresh()
                         for match in match_list:
-                            print(match)
+                            # logging.warning(match)
                             self.driver.execute_script("arguments[0].click();", match)
-                            print(
-                                f"Entered {sport_text}-group-match in {(time.time() - self.start_time)} "
+                            logging.warning(
+                                f"Entered {sport_text}-group-match in {(time.perf_counter() - self.start_time)} "
                             )
                             self.wait.until(
                                 EC.visibility_of_element_located(
                                     (By.CSS_SELECTOR, "div.cm-CouponModule")
                                 )
                             )
-                            time.sleep(20)
                             back = self.driver.find_element(
                                 By.CSS_SELECTOR, "div.sph-Breadcrumb"
                             )
+                            # self.driver.wait.until(EC.visibility_of_element_located(By.CSS_SELECTOR, "div.cm-OfferBadgesContainer"))
                             ActionChains(self.driver).move_to_element(back).perform()
                             self.driver.execute_script("arguments[0].click();", back)
-                            time.sleep(10)
-
                 case _:
                     pass
+                
 
 
 if __name__ == "__main__":
